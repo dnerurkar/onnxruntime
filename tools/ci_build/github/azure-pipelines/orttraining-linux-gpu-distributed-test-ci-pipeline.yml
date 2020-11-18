@@ -1,0 +1,40 @@
+trigger: none
+
+jobs:
+- job: Onnxruntime_Linux_GPU_Distributed_Test
+
+  timeoutInMinutes: 120
+  pool: 'Linux-Multi-GPU-V100'
+
+  steps:
+  - checkout: self
+    clean: true
+    submodules: recursive
+
+  - script: |
+      tools/ci_build/github/linux/run_dockerbuild.sh \
+        -o ubuntu16.04 -d gpu -r $(Build.BinariesDirectory) \
+        -x " \
+          --config RelWithDebInfo \
+          --enable_training \
+          --update --build \
+          --build_wheel \
+          "
+    displayName: 'Build'
+    # all distributed tests
+  - script: |
+      docker run \
+        --gpus all \
+        --shm-size=1024m \
+        --rm \
+        --volume $(Build.SourcesDirectory):/onnxruntime_src \
+        --volume $(Build.BinariesDirectory):/build \
+        onnxruntime-ubuntu16.04-cuda10.1-cudnn7.6 \
+          /build/RelWithDebInfo/launch_test.py \
+            --cmd_line_with_args "python orttraining_distributed_tests.py -v" \
+            --cwd /build/RelWithDebInfo \
+    displayName: 'Run orttraining_distributed_tests.py'
+    condition: succeededOrFailed() # ensure all tests are run
+    timeoutInMinutes: 30
+        
+  - template: templates/clean-agent-build-directory-step.yml

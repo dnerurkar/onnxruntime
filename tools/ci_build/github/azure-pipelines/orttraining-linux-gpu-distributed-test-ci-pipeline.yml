@@ -11,6 +11,13 @@ jobs:
     clean: true
     submodules: recursive
 
+  - task: Docker@2
+    displayName: login
+    inputs:
+      containerRegistry: onnxruntimebuildcache
+      command: login
+      addPipelineData: false
+
   - script: |
       tools/ci_build/github/linux/run_dockerbuild.sh \
         -o ubuntu16.04 -d gpu -r $(Build.BinariesDirectory) \
@@ -36,5 +43,12 @@ jobs:
     displayName: 'Run orttraining_distributed_tests.py'
     condition: succeededOrFailed() # ensure all tests are run
     timeoutInMinutes: 30
+
+  - task: Docker@2
+    displayName: logout
+    inputs:
+      containerRegistry: onnxruntimebuildcache
+      command: logout
+      addPipelineData: false
         
   - template: templates/clean-agent-build-directory-step.yml

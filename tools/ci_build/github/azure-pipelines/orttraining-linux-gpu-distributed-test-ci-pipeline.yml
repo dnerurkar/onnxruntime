@@ -38,7 +38,7 @@ jobs:
         --volume $(Build.BinariesDirectory):/build \
         onnxruntime-ubuntu16.04-cuda10.1-cudnn7.6 \
           /build/RelWithDebInfo/launch_test.py \
-            --cmd_line_with_args "python orttraining_distributed_tests.py -v" \
+            --cmd_line_with_args "python orttraining_distributed_tests.py" \
             --cwd /build/RelWithDebInfo \
     displayName: 'Run orttraining_distributed_tests.py'
     condition: succeededOrFailed() # ensure all tests are run

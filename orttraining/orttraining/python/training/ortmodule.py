@@ -66,7 +66,6 @@ class ORTModule(torch.nn.Module):
         # User module is wrapped to use its initializers and save computed gradients
         self._original_module = module
         self._onnx_training = None
-        self._onnx_gradient = None
 
         # Forward pass
         self._onnx_forward = None
@@ -158,12 +157,11 @@ class ORTModule(torch.nn.Module):
             grad_builder_config = C.ModuleGradientGraphBuilderConfiguration()
             # TODO: PyTorch exporter bug: changes the initializer order
             initializer_names = [p[0] for p in self._original_module.named_parameters()]
-            self._onnx_gradient, self._onnx_forward, self._onnx_backward, self._onnx_graphs_info = \
+            self._onnx_forward, self._onnx_backward, self._onnx_graphs_info = \
                 ORTModule._build_fw_bw_grad_graphs(self._onnx_training, grad_builder_config, initializer_names)
 
             if self._save_onnx:
                 onnx.save(self._onnx_training, self._save_onnx_prefix + '_full_training.onnx')
-                onnx.save(self._onnx_gradient, self._save_onnx_prefix + '_with_grad.onnx')
                 onnx.save(self._onnx_forward, self._save_onnx_prefix + '_forward.onnx')
                 onnx.save(self._onnx_backward, self._save_onnx_prefix + '_backward.onnx')
 
@@ -402,10 +400,9 @@ class ORTModule(torch.nn.Module):
         module_gradient_graph_builder.build_and_split(forward_graph.SerializeToString(), config)
         forward_model = onnx.load_model_from_string(module_gradient_graph_builder.get_forward_model())
         backward_model = onnx.load_model_from_string(module_gradient_graph_builder.get_backward_model())
-        gradient_model = onnx.load_model_from_string(module_gradient_graph_builder.get_gradient_model())
         split_graphs_info = module_gradient_graph_builder.get_split_graphs_info()
 
-        return gradient_model, forward_model, backward_model, split_graphs_info
+        return forward_model, backward_model, split_graphs_info
 
 
     @staticmethod
